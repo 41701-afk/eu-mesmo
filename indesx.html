@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-950">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyberpunk Robot Survival Shooter 2D</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+        
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* Efeitos Neon Cyberpunk */
+        .neon-border-cyan {
+            box-shadow: 0 0 10px rgba(6, 182, 212, 0.5), inset 0 0 10px rgba(6, 182, 212, 0.3);
+        }
+        .neon-border-magenta {
+            box-shadow: 0 0 10px rgba(236, 72, 153, 0.5), inset 0 0 10px rgba(236, 72, 153, 0.3);
+        }
+        .neon-text-cyan {
+            text-shadow: 0 0 8px rgba(6, 182, 212, 0.8);
+        }
+        .neon-text-yellow {
+            text-shadow: 0 0 8px rgba(234, 179, 8, 0.8);
+        }
+        .neon-text-red {
+            text-shadow: 0 0 8px rgba(239, 68, 68, 0.8);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #06b6d4;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="h-full w-full text-slate-100 flex flex-col justify-center items-center bg-slate-950 relative overflow-hidden">
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas" class="absolute inset-0 z-0 block w-full h-full cursor-crosshair"></canvas>
+
+    <!-- Overlay do HUD em Jogo -->
+    <div id="hudOverlay" class="absolute inset-0 z-10 pointer-events-none p-4 md:p-6 flex flex-col justify-between hidden">
+        <!-- Barra Superior HUD -->
+        <div class="flex justify-between items-start gap-4">
+            <!-- HP do Jogador & Arma Ativa -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-cyan-500/40 p-3 rounded-xl min-w-[220px] max-w-[300px] neon-border-cyan">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-cyan-400 tracking-wider">INTEGRIDADE DO CHASSI</span>
+                    <span id="hpText" class="text-xs font-bold text-slate-200">100 / 100</span>
+                </div>
+                <!-- Barra de Vida Dinâmica -->
+                <div class="w-full h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-700/50 p-0.5">
+                    <div id="hpBar" class="h-full bg-gradient-to-r from-red-500 via-yellow-400 to-emerald-400 rounded-full transition-all duration-200 w-full"></div>
+                </div>
+                <!-- Arma Ativa -->
+                <div class="mt-2 flex items-center justify-between border-t border-slate-800 pt-2 text-xs">
+                    <span class="text-slate-400">ARMA:</span>
+                    <span id="hudWeaponName" class="font-orbitron text-cyan-300 font-bold">PISTOLA DE PLASMA</span>
+                </div>
+            </div>
+
+            <!-- Centro: Cronômetro & Nível de Ameaça Dinâmico -->
+            <div class="flex flex-col items-center">
+                <div id="threatBadge" class="bg-slate-900/90 backdrop-blur-md border border-emerald-500/50 px-5 py-1.5 rounded-full text-center transition-all duration-300 shadow-lg">
+                    <span id="threatLevelText" class="font-orbitron font-bold text-sm md:text-base text-emerald-400 tracking-wider">
+                        AMEAÇA: NÍVEL 1 - BAIXA
+                    </span>
+                </div>
+                <!-- Tempo de Sobrevivência -->
+                <div class="mt-1 bg-slate-950/80 px-4 py-0.5 rounded-b-lg border-x border-b border-slate-800 text-xs font-mono text-cyan-400">
+                    TEMPO: <span id="survivalTimerText" class="font-bold text-white">00:00</span>
+                </div>
+            </div>
+
+            <!-- Direita: Pontuação & Créditos -->
+            <div class="bg-slate-900/80 backdrop-blur-md border border-magenta-500/40 p-3 rounded-xl min-w-[180px] text-right neon-border-magenta">
+                <div class="text-xs text-pink-400 font-semibold tracking-wider">PONTUAÇÃO</div>
+                <div id="hudScoreText" class="font-orbitron text-2xl font-black text-white neon-text-magenta">0</div>
+                <div class="text-xs text-amber-400 font-semibold mt-1">CRÉDITOS: <span id="hudCreditsText" class="text-white font-bold">0</span></div>
+            </div>
+        </div>
+
+        <!-- Rodapé HUD (Instruções e Botão de Pausa) -->
+        <div class="flex justify-between items-end">
+            <div class="bg-slate-900/70 backdrop-blur-sm p-2 px-3 rounded-lg border border-slate-800 text-xs text-slate-400 hidden sm:block">
+                [WASD/Setas] Mover &bull; [Mouse] Mirar & Atirar &bull; [ESC/P] Pausar/Loja
+            </div>
+            <button id="btnPause" class="pointer-events-auto bg-slate-900/90 hover:bg-cyan-950 text-cyan-400 border border-cyan-500/50 hover:border-cyan-400 px-4 py-2 rounded-lg font-bold text-sm transition-all shadow-lg active:scale-95">
+                PAUSAR / LOJA [P]
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: Menu Principal -->
+    <div id="mainMenuModal" class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+        <div class="max-w-md w-full bg-slate-900/90 border-2 border-cyan-500/60 rounded-2xl p-6 md:p-8 text-center shadow-2xl relative overflow-hidden neon-border-cyan">
+            <!-- Elemento decorativo de fundo -->
+            <div class="absolute -right-12 -top-12 w-40 h-40 bg-cyan-500/10 rounded-full blur-2xl"></div>
+            <div class="absolute -left-12 -bottom-12 w-40 h-40 bg-pink-500/10 rounded-full blur-2xl"></div>
+
+            <h1 class="font-orbitron text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-amber-400 mb-2 tracking-wide">
+                CYBER SURVIVOR
+            </h1>
+            <p class="text-slate-400 text-xs md:text-sm mb-6">Sobreviva ao enxame de robôs descontrolados. Dificuldade e velocidade aumentam com o tempo!</p>
+
+            <div class="space-y-3 mb-6">
+                <button id="btnStartGame" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-black text-lg rounded-xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 tracking-wider">
+                    INICIAR MISSÃO
+                </button>
+                <button id="btnOpenShopMain" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-pink-400 border border-pink-500/40 hover:border-pink-400 font-bold rounded-xl transition-all transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                    LOJA DE ARMAS E SKINS
+                </button>
+            </div>
+
+            <!-- Informações Rápidas -->
+            <div class="border-t border-slate-800 pt-4 text-xs text-slate-400 grid grid-cols-2 gap-2 text-left">
+                <div>&bull; <strong class="text-slate-300">Movimento:</strong> WASD / Setas</div>
+                <div>&bull; <strong class="text-slate-300">Mirar/Atirar:</strong> Mouse</div>
+                <div>&bull; <strong class="text-slate-300">Dificuldade Inicial:</strong> Suave</div>
+                <div>&bull; <strong class="text-slate-300">Progressão:</strong> Dinâmica</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Loja (Armas e Skins) -->
+    <div id="shopModal" class="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 hidden">
+        <div class="max-w-3xl w-full bg-slate-900 border border-slate-700 rounded-2xl p-5 md:p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <!-- Cabeçalho Loja -->
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
+                <div>
+                    <h2 class="font-orbitron text-2xl font-bold text-cyan-400">ARSENAL CYBERNETICO</h2>
+                    <p class="text-xs text-slate-400">Adquira novas armas e skins customizadas com seus créditos de pontuação.</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs text-slate-400 block">SEUS CRÉDITOS</span>
+                    <span id="shopCreditsText" class="font-orbitron text-xl font-bold text-amber-400">0</span>
+                </div>
+            </div>
+
+            <!-- Abas da Loja -->
+            <div class="flex gap-2 mb-4 border-b border-slate-800 pb-2">
+                <button id="tabWeapons" class="px-4 py-2 font-bold text-sm rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/50">ARMAS</button>
+                <button id="tabSkins" class="px-4 py-2 font-bold text-sm rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-transparent">SKINS DE CHASSI</button>
+            </div>
+
+            <!-- Conteúdo da Loja: Armas -->
+            <div id="shopWeaponsContent" class="overflow-y-auto pr-1 flex-1 space-y-3">
+                <!-- Injetado via Javascript -->
+            </div>
+
+            <!-- Conteúdo da Loja: Skins -->
+            <div id="shopSkinsContent" class="overflow-y-auto pr-1 flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 hidden">
+                <!-- Injetado via Javascript -->
+            </div>
+
+            <!-- Rodapé Loja -->
+            <div class="mt-4 border-t border-slate-800 pt-4 flex justify-end">
+                <button id="btnCloseShop" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl border border-slate-600 transition-all">
+                    VOLTAR
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Pausa -->
+    <div id="pauseModal" class="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 hidden">
+        <div class="max-w-sm w-full bg-slate-900 border border-cyan-500/40 rounded-2xl p-6 text-center shadow-2xl">
+            <h2 class="font-orbitron text-2xl font-bold text-cyan-400 mb-4">SISTEMA EM PAUSA</h2>
+            <div class="space-y-3 mb-6">
+                <button id="btnResumeGame" class="w-full py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm rounded-xl transition-all">
+                    CONTINUAR JOGO
+                </button>
+                <button id="btnOpenShopPause" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-pink-400 border border-pink-500/40 font-bold text-sm rounded-xl transition-all">
+                    ABRIR LOJA / EQUIPAMENTOS
+                </button>
+                <button id="btnQuitToMenu" class="w-full py-3 bg-red-900/40 hover:bg-red-900/60 text-red-300 border border-red-500/40 font-bold text-sm rounded-xl transition-all">
+                    SAIR PARA O MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Game Over -->
+    <div id="gameOverModal" class="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/90 backdrop-blur-lg p-4 hidden">
+        <div class="max-w-md w-full bg-slate-900 border-2 border-red-500/60 rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden neon-border-magenta">
+            <h2 class="font-orbitron text-3xl font-black text-red-500 mb-1 neon-text-red">SISTEMA DESTRUÍDO</h2>
+            <p class="text-xs text-slate-400 mb-6">Seu robô foi sobrecarregado pelas máquinas inimigas.</p>
+
+            <!-- Estatísticas do Jogo -->
+            <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2 text-sm mb-6 text-left">
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Tempo Sobrevivido:</span>
+                    <span id="goTime" class="font-bold text-cyan-400">00:00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Inimigos Eliminados:</span>
+                    <span id="goKills" class="font-bold text-white">0</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-slate-400">Pontuação Final:</span>
+                    <span id="goScore" class="font-bold text-pink-400">0</span>
+                </div>
+                <div class="flex justify-between border-t border-slate-800 pt-2">
+                    <span class="text-slate-400">Nível Máximo de Ameaça:</span>
+                    <span id="goThreat" class="font-bold text-amber-400">Nível 1</span>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button id="btnRestartGame" class="w-full py-3.5 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-400 hover:to-pink-500 text-white font-orbitron font-bold text-base rounded-xl shadow-lg transition-all">
+                    REINICIAR TENTATIVA
+                </button>
+                <button id="btnGoToMenu" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold rounded-xl transition-all">
+                    VOLTAR AO MENU
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. SISTEMA DE ÁUDIO SINTETIZADO (Web Audio API - Sem Arquivos Externos)
+           ========================================================================== */
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            play(type) {
+                if (!this.ctx) return;
+                try {
+                    const ctx = this.ctx;
+                    const now = ctx.currentTime;
+
+                    if (type === 'shoot_pistol') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(450, now);
+                        osc.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.12);
+                    } else if (type === 'shoot_shotgun') {
+                        // Ruído branco para tiro pesado
+                        const bufferSize = ctx.sampleRate * 0.2;
+                        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                        const noise = ctx.createBufferSource();
+                        noise.buffer = buffer;
+                        const gain = ctx.createGain();
+                        gain.gain.setValueAtTime(0.4, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                        noise.connect(gain);
+                        gain.connect(ctx.destination);
+                        noise.start(now);
+                    } else if (type === 'shoot_plasma') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(800, now);
+                        osc.frequency.exponentialRampToValueAtTime(150, now + 0.25);
+                        gain.gain.setValueAtTime(0.3, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    } else if (type === 'hit') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(180, now);
+                        osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+                        gain.gain.setValueAtTime(0.15, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.08);
+                    } else if (type === 'explosion') {
+                        const bufferSize = ctx.sampleRate * 0.4;
+                        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                        const data = buffer.getChannelData(0);
+                        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                        const noise = ctx.createBufferSource();
+                        noise.buffer = buffer;
+                        const filter = ctx.createBiquadFilter();
+                        filter.type = 'lowpass';
+                        filter.frequency.setValueAtTime(300, now);
+                        filter.frequency.linearRampToValueAtTime(50, now + 0.4);
+                        const gain = ctx.createGain();
+                        gain.gain.setValueAtTime(0.5, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                        noise.connect(filter);
+                        filter.connect(gain);
+                        gain.connect(ctx.destination);
+                        noise.start(now);
+                    } else if (type === 'buy') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(523.25, now); // C5
+                        osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                        gain.gain.setValueAtTime(0.2, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    } else if (type === 'threat_up') {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(200, now);
+                        osc.frequency.setValueAtTime(400, now + 0.15);
+                        gain.gain.setValueAtTime(0.25, now);
+                        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.35);
+                    }
+                } catch(e) {}
+            }
+        };
+
+        /* ==========================================================================
+           2. CONFIGURAÇÕES DAS ARMAS E SKINS
+           ========================================================================== */
+        const WEAPONS = [
+            { id: 'pistol', name: 'Pistola de Plasma', price: 0, damage: 16, cooldown: 220, bulletSpeed: 14, count: 1, spread: 0.05, color: '#06b6d4', type: 'single' },
+            { id: 'shotgun', name: 'Espingarda Calibre 12', price: 500, damage: 11, cooldown: 750, bulletSpeed: 12, count: 6, spread: 0.28, color: '#f59e0b', type: 'spread' },
+            { id: 'smg', name: 'Submetralhadora Neon', price: 850, damage: 10, cooldown: 110, bulletSpeed: 15, count: 1, spread: 0.12, color: '#ec4899', type: 'single' },
+            { id: 'rifle', name: 'Fuzil de Assalto AR-80', price: 1400, damage: 22, cooldown: 160, bulletSpeed: 17, count: 1, spread: 0.06, color: '#3b82f6', type: 'single' },
+            { id: 'sniper', name: 'Sniper de Feixe Gauss', price: 2200, damage: 130, cooldown: 1100, bulletSpeed: 24, count: 1, spread: 0.01, color: '#10b981', type: 'pierce' },
+            { id: 'plasma', name: 'Canhão de Plasma Splash', price: 3200, damage: 85, cooldown: 650, bulletSpeed: 9, count: 1, spread: 0.02, color: '#8b5cf6', type: 'plasma', radius: 10 },
+            { id: 'flamethrower', name: 'Lança-chamas Térmico', price: 4200, damage: 5, cooldown: 45, bulletSpeed: 7, count: 2, spread: 0.35, color: '#ef4444', type: 'flame' },
+            { id: 'minigun', name: 'Metralhadora Rotativa', price: 6000, damage: 18, cooldown: 65, bulletSpeed: 18, count: 1, spread: 0.15, color: '#f97316', type: 'single' }
+        ];
+
+        const SKINS = [
+            { id: 'cyan', name: 'Neon Cyan (Padrão)', price: 0, primary: '#06b6d4', glow: 'rgba(6, 182, 212, 0.6)' },
+            { id: 'red', name: 'Crimson Plasma', price: 500, primary: '#ef4444', glow: 'rgba(239, 68, 68, 0.6)' },
+            { id: 'green', name: 'Acid Green', price: 1000, primary: '#10b981', glow: 'rgba(16, 185, 129, 0.6)' },
+            { id: 'violet', name: 'Electric Violet', price: 1800, primary: '#a855f7', glow: 'rgba(168, 85, 247, 0.6)' },
+            { id: 'gold', name: 'Gold Titan', price: 3500, primary: '#eab308', glow: 'rgba(234, 179, 8, 0.6)' },
+            { id: 'matrix', name: 'Matrix Void', price: 5000, primary: '#f8fafc', glow: 'rgba(248, 250, 252, 0.8)' }
+        ];
+
+        /* ==========================================================================
+           3. ESTADO GLOBAL DO JOGO E VARIÁVEIS DE DIFICULDADE INICIAL
+           ========================================================================== */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Estado do jogo
+        let gameState = 'MENU'; // 'MENU', 'PLAYING', 'PAUSED', 'GAMEOVER'
+        let score = 0;
+        let credits = 0;
+        let kills = 0;
+        let survivalTimeSeconds = 0;
+        let survivalTimerInterval = null;
+        let lastThreatLevel = 1;
+
+        // --- VARIÁVEIS DE DIFICULDADE INICIAL E PROGRESSÃO ---
+        // (Ajustadas para início calmo e amigável conforme solicitado)
+        const DIFFICULTY_SETTINGS = {
+            // Velocidade Base Inicial dos Inimigos (Reduzida de ~2.0 para 1.15)
+            initialEnemySpeed: 1.15,
+            
+            // Frequência Base Inicial de Spawn em ms (Aumentada de 1200ms para 2400ms = 2.4s)
+            initialSpawnInterval: 2400,
+            
+            // Multiplicador Inicial de Vida dos Inimigos (Reduzido para 0.75x)
+            initialHpMultiplier: 0.75,
+            
+            // Incrementos por segundo de sobrevivência:
+            speedIncreasePerSecond: 0.0035,   // +0.35% de velocidade por segundo
+            hpIncreasePerSecond: 0.008,       // +0.8% de HP por segundo
+            spawnIntervalDecreasePerSec: 12   // Diminui o tempo entre spawns em 12ms a cada segundo
+        };
+
+        // Entidades
+        let player = null;
+        let bullets = [];
+        let enemies = [];
+        let particles = [];
+        let damageNumbers = [];
+        let oilSplatters = [];
+
+        // Controle de entrada (Teclado e Mouse)
+        const keys = {};
+        const mouse = { x: 0, y: 0, isDown: false };
+
+        // Inventário do jogador
+        let unlockedWeapons = ['pistol'];
+        let activeWeaponId = 'pistol';
+        let unlockedSkins = ['cyan'];
+        let activeSkinId = 'cyan';
+
+        // Efeito de tremedeira na tela (Screen Shake)
+        let screenShakeTime = 0;
+        let screenShakeIntensity = 0;
+
+        /* ==========================================================================
+           4. REDIMENSIONAMENTO E UTILITÁRIOS
+           ========================================================================== */
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function triggerScreenShake(duration, intensity) {
+            screenShakeTime = duration;
+            screenShakeIntensity = intensity;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        /* ==========================================================================
+           5. CÁLCULO DINÂMICO DA DIFICULDADE E NÍVEL DE AMEAÇA
+           ========================================================================== */
+        function getDifficultyStats() {
+            const t = survivalTimeSeconds;
+            
+            // Multiplicador dinâmico de velocidade acumulado com o tempo
+            const speedMult = 1 + (t * DIFFICULTY_SETTINGS.speedIncreasePerSecond);
+            
+            // Multiplicador dinâmico de HP acumulado com o tempo e um pouco com a pontuação
+            const hpMult = (DIFFICULTY_SETTINGS.initialHpMultiplier) + (t * DIFFICULTY_SETTINGS.hpIncreasePerSecond) + (score / 10000);
+            
+            // Intervalo de spawn diminui suavemente até um limite mínimo seguro de 350ms
+            const currentSpawnInterval = Math.max(350, DIFFICULTY_SETTINGS.initialSpawnInterval - (t * DIFFICULTY_SETTINGS.spawnIntervalDecreasePerSec));
+
+            // Nível de Ameaça calculado a cada 40 segundos de sobrevivência ou grandes marcos de pontuação
+            const level = Math.floor(t / 40) + Math.floor(score / 1500) + 1;
+
+            return {
+                speedMult,
+                hpMult,
+                spawnInterval: currentSpawnInterval,
+                threatLevel: level
+            };
+        }
+
+        function getThreatTextAndColor(level) {
+            if (level === 1) return { text: "AMEAÇA: NÍVEL 1 - BAIXA", colorClass: "text-emerald-400", borderClass: "border-emerald-500/50" };
+            if (level === 2) return { text: "AMEAÇA: NÍVEL 2 - MODERADA", colorClass: "text-cyan-400", borderClass: "border-cyan-500/50" };
+            if (level === 3) return { text: "AMEAÇA: NÍVEL 3 - ELEVADA", colorClass: "text-yellow-400", borderClass: "border-yellow-500/50" };
+            if (level === 4) return { text: "AMEAÇA: NÍVEL 4 - CRÍTICA", colorClass: "text-orange-500", borderClass: "border-orange-500/50" };
+            if (level === 5) return { text: "AMEAÇA: NÍVEL 5 - EXTREMA", colorClass: "text-red-500", borderClass: "border-red-500/50" };
+            return { text: `AMEAÇA: NÍVEL ${level} - APOCALIPSE CYBER`, colorClass: "text-pink-500", borderClass: "border-pink-500/50" };
+        }
+
+        /* ==========================================================================
+           6. CLASSES DO JOGO (JOGADOR, INIMIGOS, PROJÉTEIS, EFEITOS)
+           ========================================================================== */
+        class Player {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 18;
+                this.speed = 4.2;
+                this.hp = 100;
+                this.maxHp = 100;
+                this.angle = 0;
+                this.lastShotTime = 0;
+            }
+
+            update() {
+                // Movimentação WASD / Setas
+                let dx = 0;
+                let dy = 0;
+                if (keys['w'] || keys['W'] || keys['ArrowUp']) dy -= 1;
+                if (keys['s'] || keys['S'] || keys['ArrowDown']) dy += 1;
+                if (keys['a'] || keys['A'] || keys['ArrowLeft']) dx -= 1;
+                if (keys['d'] || keys['D'] || keys['ArrowRight']) dx += 1;
+
+                // Normaliza vetor para não andar mais rápido na diagonal
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.7071;
+                    dy *= 0.7071;
+                }
+
+                this.x += dx * this.speed;
+                this.y += dy * this.speed;
+
+                // Mantém nos limites da tela
+                this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+                this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+
+                // Mira no cursor do mouse
+                this.angle = Math.atan2(mouse.y - this.y, mouse.x - this.x);
+
+                // Disparo de tiros se o botão do mouse estiver pressionado
+                if (mouse.isDown) {
+                    this.shoot();
+                }
+            }
+
+            shoot() {
+                const now = Date.now();
+                const weapon = WEAPONS.find(w => w.id === activeWeaponId);
+                if (!weapon) return;
+
+                if (now - this.lastShotTime >= weapon.cooldown) {
+                    this.lastShotTime = now;
+
+                    // Som de tiro sintetizado
+                    if (weapon.id === 'shotgun') AudioFX.play('shoot_shotgun');
+                    else if (weapon.id === 'plasma') AudioFX.play('shoot_plasma');
+                    else AudioFX.play('shoot_pistol');
+
+                    // Criar projéteis
+                    for (let i = 0; i < weapon.count; i++) {
+                        const spreadAngle = this.angle + (Math.random() - 0.5) * weapon.spread;
+                        bullets.push(new Bullet(
+                            this.x + Math.cos(this.angle) * this.radius,
+                            this.y + Math.sin(this.angle) * this.radius,
+                            spreadAngle,
+                            weapon
+                        ));
+                    }
+
+                    // Muzzle Flash Particle Effect
+                    for (let i = 0; i < 4; i++) {
+                        particles.push(new Particle(
+                            this.x + Math.cos(this.angle) * (this.radius + 10),
+                            this.y + Math.sin(this.angle) * (this.radius + 10),
+                            weapon.color,
+                            (Math.random() - 0.5) * 3,
+                            (Math.random() - 0.5) * 3,
+                            Math.random() * 4 + 2,
+                            0.15
+                        ));
+                    }
+                }
+            }
+
+            draw() {
+                const skin = SKINS.find(s => s.id === activeSkinId) || SKINS[0];
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                // Brilho Neon Cyberpunk no chassi
+                ctx.shadowColor = skin.primary;
+                ctx.shadowBlur = 12;
+
+                // Armas
+                ctx.fillStyle = '#475569';
+                ctx.fillRect(5, -4, 18, 8);
+
+                // Corpo do Robô Jogador
+                ctx.fillStyle = skin.primary;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#0f172a';
+                ctx.stroke();
+
+                // Olho / Visor Central
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(6, 0, 5, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, angle, weapon) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.speed = weapon.bulletSpeed;
+                this.damage = weapon.damage;
+                this.color = weapon.color;
+                this.type = weapon.type;
+                this.radius = weapon.radius || 4;
+                this.piercedCount = 0;
+                this.maxPierces = weapon.type === 'pierce' ? 3 : 1;
+                this.lifeTime = weapon.type === 'flame' ? 25 : 200; // Lança-chamas tem alcance limitado
+            }
+
+            update() {
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+                this.lifeTime--;
+
+                // Rastro de partículas para efeito neon
+                if (Math.random() > 0.4) {
+                    particles.push(new Particle(this.x, this.y, this.color, 0, 0, this.type === 'flame' ? 6 : 2, 0.2));
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 8;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Enemy {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'scrapper', 'drone', 'enforcer', 'crawler'
+                
+                const stats = getDifficultyStats();
+
+                // Dificuldade Ajustada: Velocidades base menores + multiplicador por tempo
+                if (type === 'scrapper') {
+                    this.radius = 16;
+                    this.baseSpeed = 1.15;
+                    this.baseHp = 24;
+                    this.color = '#ef4444'; // Vermelho
+                    this.scoreValue = 25;
+                } else if (type === 'drone') {
+                    this.radius = 12;
+                    this.baseSpeed = 1.6;
+                    this.baseHp = 14;
+                    this.color = '#eab308'; // Amarelo
+                    this.scoreValue = 35;
+                } else if (type === 'enforcer') {
+                    this.radius = 26;
+                    this.baseSpeed = 0.75;
+                    this.baseHp = 70;
+                    this.color = '#a855f7'; // Roxo
+                    this.scoreValue = 80;
+                } else { // 'crawler'
+                    this.radius = 10;
+                    this.baseSpeed = 1.9;
+                    this.baseHp = 10;
+                    this.color = '#10b981'; // Verde ácido
+                    this.scoreValue = 20;
+                }
+
+                // Aplica a progressão de dificuldade por tempo e pontuação
+                this.speed = this.baseSpeed * stats.speedMult;
+                this.hp = Math.round(this.baseHp * stats.hpMult);
+                this.maxHp = this.hp;
+                this.angle = 0;
+            }
+
+            update() {
+                // Segue a posição do jogador
+                this.angle = Math.atan2(player.y - this.y, player.x - this.x);
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+
+                ctx.shadowColor = this.color;
+                ctx.shadowBlur = 6;
+                ctx.fillStyle = this.color;
+
+                // Desenho diferenciado por tipo
+                if (this.type === 'enforcer') {
+                    ctx.fillRect(-this.radius, -this.radius, this.radius * 2, this.radius * 2);
+                } else if (this.type === 'drone') {
+                    ctx.beginPath();
+                    ctx.moveTo(this.radius, 0);
+                    ctx.lineTo(-this.radius, -this.radius / 1.5);
+                    ctx.lineTo(-this.radius, this.radius / 1.5);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+
+                // Barra de Vida acima do Inimigo (se tiver sofrido dano)
+                if (this.hp < this.maxHp) {
+                    const barW = this.radius * 2;
+                    const barH = 4;
+                    const hpRatio = Math.max(0, this.hp / this.maxHp);
+                    ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                    ctx.fillRect(this.x - barW / 2, this.y - this.radius - 8, barW, barH);
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(this.x - barW / 2, this.y - this.radius - 8, barW * hpRatio, barH);
+                }
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color, vx, vy, size, fadeSpeed) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.vx = vx;
+                this.vy = vy;
+                this.size = size;
+                this.alpha = 1;
+                this.fadeSpeed = fadeSpeed || 0.03;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.fadeSpeed;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class DamageNumber {
+            constructor(x, y, damage, isCritical) {
+                this.x = x;
+                this.y = y;
+                this.damage = damage;
+                this.isCritical = isCritical;
+                this.alpha = 1;
+                this.vy = -1.2;
+            }
+
+            update() {
+                this.y += this.vy;
+                this.alpha -= 0.025;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.font = this.isCritical ? 'bold 16px Orbitron' : 'bold 12px Orbitron';
+                ctx.fillStyle = this.isCritical ? '#f59e0b' : '#ffffff';
+                ctx.fillText(this.damage, this.x, this.y);
+                ctx.restore();
+            }
+        }
+
+        class OilSplatter {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = Math.random() * 12 + 8;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.7)'; // Óleo escuro neon
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        /* ==========================================================================
+           7. SISTEMA DE SPAWN E CONTROLE DE DIFICULDADE EM TEMPO REAL
+           ========================================================================== */
+        let lastSpawnTime = 0;
+
+        function spawnEnemiesLoop(timestamp) {
+            if (gameState !== 'PLAYING') return;
+
+            const stats = getDifficultyStats();
+
+            if (timestamp - lastSpawnTime >= stats.spawnInterval) {
+                lastSpawnTime = timestamp;
+
+                // Escolhe o tipo de inimigo com base no tempo decorrido
+                let type = 'scrapper';
+                const rand = Math.random();
+                
+                if (survivalTimeSeconds > 25 && rand > 0.65) type = 'drone';
+                if (survivalTimeSeconds > 50 && rand > 0.82) type = 'enforcer';
+                if (survivalTimeSeconds > 15 && rand < 0.25) type = 'crawler';
+
+                // Nasce fora da tela
+                let x, y;
+                if (Math.random() < 0.5) {
+                    x = Math.random() < 0.5 ? -30 : canvas.width + 30;
+                    y = Math.random() * canvas.height;
+                } else {
+                    x = Math.random() * canvas.width;
+                    y = Math.random() < 0.5 ? -30 : canvas.height + 30;
+                }
+
+                enemies.push(new Enemy(x, y, type));
+            }
+        }
+
+        /* ==========================================================================
+           8. GAME LOOP & LÓGICA DE ATUALIZAÇÃO
+           ========================================================================== */
+        let lastFrameTime = 0;
+
+        function gameLoop(timestamp) {
+            const dt = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Aplicar Screen Shake se ativo
+            ctx.save();
+            if (screenShakeTime > 0) {
+                screenShakeTime -= 16;
+                const offsetX = (Math.random() - 0.5) * screenShakeIntensity;
+                const offsetY = (Math.random() - 0.5) * screenShakeIntensity;
+                ctx.translate(offsetX, offsetY);
+            }
+
+            // Desenhar Fundo com Grade Cyberpunk
+            drawGridBackground();
+
+            // Desenhar manchas de óleo acumuladas
+            oilSplatters.forEach(oil => oil.draw());
+
+            if (gameState === 'PLAYING') {
+                // Spawner de Inimigos
+                spawnEnemiesLoop(timestamp);
+
+                // Atualizar e Desenhar Jogador
+                player.update();
+                player.draw();
+
+                // Atualizar Projéteis
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const b = bullets[i];
+                    b.update();
+                    b.draw();
+
+                    // Remove se sair da tela ou acabar tempo de vida
+                    if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height || b.lifeTime <= 0) {
+                        bullets.splice(i, 1);
+                    }
+                }
+
+                // Atualizar Inimigos e Colisões
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const e = enemies[i];
+                    e.update();
+                    e.draw();
+
+                    // Colisão Inimigo vs Jogador
+                    const distToPlayer = Math.hypot(player.x - e.x, player.y - e.y);
+                    if (distToPlayer < player.radius + e.radius) {
+                        player.hp -= 0.6; // Dano contínuo
+                        AudioFX.play('hit');
+                        triggerScreenShake(100, 4);
+
+                        if (player.hp <= 0) {
+                            gameOver();
+                        }
+                    }
+
+                    // Colisão Projétil vs Inimigo
+                    for (let j = bullets.length - 1; j >= 0; j--) {
+                        const b = bullets[j];
+                        const distToBullet = Math.hypot(b.x - e.x, b.y - e.y);
+
+                        if (distToBullet < e.radius + b.radius) {
+                            e.hp -= b.damage;
+                            AudioFX.play('hit');
+
+                            // Criar número de dano voador
+                            damageNumbers.push(new DamageNumber(e.x, e.y, b.damage, b.damage > 50));
+
+                            // Faíscas
+                            for (let k = 0; k < 3; k++) {
+                                particles.push(new Particle(b.x, b.y, b.color, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, 3, 0.05));
+                            }
+
+                            // Controle de Perfuração de Tiros
+                            b.piercedCount++;
+                            if (b.piercedCount >= b.maxPierces && b.type !== 'plasma') {
+                                bullets.splice(j, 1);
+                            }
+
+                            // Efeito Especial da Arma de Plasma (Splash Damage)
+                            if (b.type === 'plasma') {
+                                AudioFX.play('explosion');
+                                triggerScreenShake(150, 6);
+                                for (let p = 0; p < 12; p++) {
+                                    particles.push(new Particle(b.x, b.y, '#8b5cf6', (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, 5, 0.04));
+                                }
+                                // Dano em área nos inimigos próximos
+                                enemies.forEach(nearEnemy => {
+                                    if (nearEnemy !== e && Math.hypot(nearEnemy.x - b.x, nearEnemy.y - b.y) < 70) {
+                                        nearEnemy.hp -= 35;
+                                    }
+                                });
+                                bullets.splice(j, 1);
+                            }
+
+                            // Morte do Inimigo
+                            if (e.hp <= 0) {
+                                AudioFX.play('explosion');
+                                triggerScreenShake(120, 5);
+
+                                // Adiciona mancha de óleo e partículas de explosão
+                                oilSplatters.push(new OilSplatter(e.x, e.y));
+                                if (oilSplatters.length > 40) oilSplatters.shift();
+
+                                for (let p = 0; p < 10; p++) {
+                                    particles.push(new Particle(e.x, e.y, e.color, (Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6, 4, 0.03));
+                                }
+
+                                score += e.scoreValue;
+                                credits += Math.round(e.scoreValue * 0.8);
+                                kills++;
+
+                                enemies.splice(i, 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Atualizar Partículas e Números de Dano
+                for (let i = particles.length - 1; i >= 0; i--) {
+                    particles[i].update();
+                    particles[i].draw();
+                    if (particles[i].alpha <= 0) particles.splice(i, 1);
+                }
+
+                for (let i = damageNumbers.length - 1; i >= 0; i--) {
+                    damageNumbers[i].update();
+                    damageNumbers[i].draw();
+                    if (damageNumbers[i].alpha <= 0) damageNumbers.splice(i, 1);
+                }
+
+                // Atualizar HUD da Interface
+                updateHUD();
+            }
+
+            ctx.restore();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function drawGridBackground() {
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'rgba(15, 23, 42, 0.8)';
+            ctx.lineWidth = 1;
+
+            const gridSize = 50;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        /* ==========================================================================
+           9. ATUALIZAÇÃO DO HUD E CRONÔMETRO
+           ========================================================================== */
+        function updateHUD() {
+            // Atualizar HP
+            const hpPct = Math.max(0, (player.hp / player.maxHp) * 100);
+            document.getElementById('hpBar').style.width = `${hpPct}%`;
+            document.getElementById('hpText').innerText = `${Math.ceil(player.hp)} / ${player.maxHp}`;
+
+            // Pontuação e Créditos
+            document.getElementById('hudScoreText').innerText = score;
+            document.getElementById('hudCreditsText').innerText = credits;
+
+            // Arma Ativa
+            const activeWep = WEAPONS.find(w => w.id === activeWeaponId);
+            document.getElementById('hudWeaponName').innerText = activeWep ? activeWep.name.toUpperCase() : '';
+
+            // Nível de Ameaça Atual
+            const stats = getDifficultyStats();
+            if (stats.threatLevel !== lastThreatLevel) {
+                lastThreatLevel = stats.threatLevel;
+                AudioFX.play('threat_up');
+            }
+
+            const threatInfo = getThreatTextAndColor(stats.threatLevel);
+            const threatBadge = document.getElementById('threatBadge');
+            const threatText = document.getElementById('threatLevelText');
+
+            threatText.innerText = threatInfo.text;
+            threatText.className = `font-orbitron font-bold text-sm md:text-base ${threatInfo.colorClass} tracking-wider`;
+            threatBadge.className = `bg-slate-900/90 backdrop-blur-md border ${threatInfo.borderClass} px-5 py-1.5 rounded-full text-center transition-all duration-300 shadow-lg`;
+        }
+
+        function startSurvivalTimer() {
+            clearInterval(survivalTimerInterval);
+            survivalTimeSeconds = 0;
+            document.getElementById('survivalTimerText').innerText = "00:00";
+
+            survivalTimerInterval = setInterval(() => {
+                if (gameState === 'PLAYING') {
+                    survivalTimeSeconds++;
+                    document.getElementById('survivalTimerText').innerText = formatTime(survivalTimeSeconds);
+                }
+            }, 1000);
+        }
+
+        /* ==========================================================================
+           10. GERENCIAMENTO DE ESTADOS DO JOGO (START, PAUSE, GAMEOVER)
+           ========================================================================== */
+        function startGame() {
+            AudioFX.init();
+            gameState = 'PLAYING';
+            score = 0;
+            kills = 0;
+            bullets = [];
+            enemies = [];
+            particles = [];
+            damageNumbers = [];
+            oilSplatters = [];
+            lastThreatLevel = 1;
+
+            player = new Player(canvas.width / 2, canvas.height / 2);
+
+            // Esconder Modais
+            document.getElementById('mainMenuModal').classList.add('hidden');
+            document.getElementById('pauseModal').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('shopModal').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.remove('hidden');
+
+            startSurvivalTimer();
+        }
+
+        function pauseGame() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                document.getElementById('pauseModal').classList.remove('hidden');
+            }
+        }
+
+        function resumeGame() {
+            if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                document.getElementById('pauseModal').classList.add('hidden');
+                document.getElementById('shopModal').classList.add('hidden');
+            }
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            clearInterval(survivalTimerInterval);
+
+            document.getElementById('goTime').innerText = formatTime(survivalTimeSeconds);
+            document.getElementById('goKills').innerText = kills;
+            document.getElementById('goScore').innerText = score;
+            
+            const stats = getDifficultyStats();
+            document.getElementById('goThreat').innerText = `Nível ${stats.threatLevel}`;
+
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        }
+
+        /* ==========================================================================
+           11. LÓGICA DA LOJA DE ARMAS E SKINS
+           ========================================================================== */
+        function renderShopContent() {
+            document.getElementById('shopCreditsText').innerText = credits;
+
+            // Renderizar Armas
+            const weaponsContainer = document.getElementById('shopWeaponsContent');
+            weaponsContainer.innerHTML = '';
+
+            WEAPONS.forEach(w => {
+                const isUnlocked = unlockedWeapons.includes(w.id);
+                const isActive = activeWeaponId === w.id;
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 transition-all ${
+                    isActive ? 'bg-cyan-950/40 border-cyan-500' : 'bg-slate-950/60 border-slate-800'
+                }`;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="font-orbitron font-bold text-base text-white">${w.name}</span>
+                            ${isActive ? '<span class="text-[10px] bg-cyan-500 text-slate-950 font-bold px-2 py-0.5 rounded">EQUIPADO</span>' : ''}
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">Dano: <strong class="text-cyan-400">${w.damage}</strong> | Cadência: <strong class="text-pink-400">${Math.round(1000/w.cooldown)}/s</strong></div>
+                    </div>
+                    <div>
+                        ${
+                            isUnlocked
+                            ? `<button onclick="selectWeapon('${w.id}')" ${isActive ? 'disabled' : ''} class="px-4 py-2 text-xs font-bold rounded-lg ${isActive ? 'bg-slate-800 text-slate-500' : 'bg-cyan-500 hover:bg-cyan-400 text-slate-950'}">
+                                ${isActive ? 'EM USO' : 'EQUIPAR'}
+                              </button>`
+                            : `<button onclick="buyWeapon('${w.id}')" class="px-4 py-2 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1">
+                                COMPRAR (${w.price} pts)
+                              </button>`
+                        }
+                    </div>
+                `;
+                weaponsContainer.appendChild(card);
+            });
+
+            // Renderizar Skins
+            const skinsContainer = document.getElementById('shopSkinsContent');
+            skinsContainer.innerHTML = '';
+
+            SKINS.forEach(s => {
+                const isUnlocked = unlockedSkins.includes(s.id);
+                const isActive = activeSkinId === s.id;
+
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-xl border flex flex-col justify-between gap-3 ${
+                    isActive ? 'bg-pink-950/40 border-pink-500' : 'bg-slate-950/60 border-slate-800'
+                }`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full border-2 border-slate-700 flex-shrink-0" style="background:${s.primary}; shadow: 0 0 10px ${s.glow}"></div>
+                        <div>
+                            <div class="font-orbitron font-bold text-sm text-white">${s.name}</div>
+                            <div class="text-[10px] text-slate-400">${isUnlocked ? (isActive ? 'Equipado' : 'Desbloqueado') : `Preço: ${s.price} pts`}</div>
+                        </div>
+                    </div>
+                    <div>
+                        ${
+                            isUnlocked
+                            ? `<button onclick="selectSkin('${s.id}')" ${isActive ? 'disabled' : ''} class="w-full py-1.5 text-xs font-bold rounded-lg ${isActive ? 'bg-slate-800 text-slate-500' : 'bg-pink-500 hover:bg-pink-400 text-slate-950'}">
+                                ${isActive ? 'EQUIPADO' : 'EQUIPAR SKIN'}
+                              </button>`
+                            : `<button onclick="buySkin('${s.id}')" class="w-full py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950">
+                                DESBLOQUEAR (${s.price})
+                              </button>`
+                        }
+                    </div>
+                `;
+                skinsContainer.appendChild(card);
+            });
+        }
+
+        function buyWeapon(id) {
+            const wep = WEAPONS.find(w => w.id === id);
+            if (wep && credits >= wep.price) {
+                credits -= wep.price;
+                unlockedWeapons.push(id);
+                activeWeaponId = id;
+                AudioFX.play('buy');
+                renderShopContent();
+                updateHUD();
+            }
+        }
+
+        function selectWeapon(id) {
+            if (unlockedWeapons.includes(id)) {
+                activeWeaponId = id;
+                AudioFX.play('buy');
+                renderShopContent();
+                updateHUD();
+            }
+        }
+
+        function buySkin(id) {
+            const skin = SKINS.find(s => s.id === id);
+            if (skin && credits >= skin.price) {
+                credits -= skin.price;
+                unlockedSkins.push(id);
+                activeSkinId = id;
+                AudioFX.play('buy');
+                renderShopContent();
+            }
+        }
+
+        function selectSkin(id) {
+            if (unlockedSkins.includes(id)) {
+                activeSkinId = id;
+                AudioFX.play('buy');
+                renderShopContent();
+            }
+        }
+
+        function openShop() {
+            renderShopContent();
+            document.getElementById('shopModal').classList.remove('hidden');
+        }
+
+        /* ==========================================================================
+           12. LISTENERS DE EVENTOS E CONTROLES
+           ========================================================================== */
+        window.addEventListener('keydown', e => {
+            keys[e.key] = true;
+            if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                if (gameState === 'PLAYING') pauseGame();
+                else if (gameState === 'PAUSED') resumeGame();
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mousedown', e => {
+            if (e.button === 0) mouse.isDown = true;
+        });
+
+        window.addEventListener('mouseup', e => {
+            if (e.button === 0) mouse.isDown = false;
+        });
+
+        // Botões do Menu e Modais
+        document.getElementById('btnStartGame').addEventListener('click', startGame);
+        document.getElementById('btnPause').addEventListener('click', pauseGame);
+        document.getElementById('btnResumeGame').addEventListener('click', resumeGame);
+        document.getElementById('btnRestartGame').addEventListener('click', startGame);
+
+        document.getElementById('btnOpenShopMain').addEventListener('click', openShop);
+        document.getElementById('btnOpenShopPause').addEventListener('click', openShop);
+        document.getElementById('btnCloseShop').addEventListener('click', () => {
+            document.getElementById('shopModal').classList.add('hidden');
+        });
+
+        document.getElementById('btnQuitToMenu').addEventListener('click', () => {
+            gameState = 'MENU';
+            clearInterval(survivalTimerInterval);
+            document.getElementById('pauseModal').classList.add('hidden');
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('mainMenuModal').classList.remove('hidden');
+        });
+
+        document.getElementById('btnGoToMenu').addEventListener('click', () => {
+            gameState = 'MENU';
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('mainMenuModal').classList.remove('hidden');
+        });
+
+        // Abas da Loja
+        document.getElementById('tabWeapons').addEventListener('click', () => {
+            document.getElementById('tabWeapons').className = "px-4 py-2 font-bold text-sm rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/50";
+            document.getElementById('tabSkins').className = "px-4 py-2 font-bold text-sm rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-transparent";
+            document.getElementById('shopWeaponsContent').classList.remove('hidden');
+            document.getElementById('shopSkinsContent').classList.add('hidden');
+        });
+
+        document.getElementById('tabSkins').addEventListener('click', () => {
+            document.getElementById('tabSkins').className = "px-4 py-2 font-bold text-sm rounded-lg bg-pink-500/20 text-pink-300 border border-pink-500/50";
+            document.getElementById('tabWeapons').className = "px-4 py-2 font-bold text-sm rounded-lg bg-slate-800 text-slate-400 hover:text-white border border-transparent";
+            document.getElementById('shopSkinsContent').classList.remove('hidden');
+            document.getElementById('shopWeaponsContent').classList.add('hidden');
+        });
+
+        window.onload = function() {
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
