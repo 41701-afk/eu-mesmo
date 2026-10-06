@@ -119,6 +119,12 @@
             </h1>
             <p class="text-slate-400 text-xs md:text-sm mb-6">Sobreviva ao enxame de robôs descontrolados. Dificuldade e velocidade aumentam com o tempo!</p>
 
+            <div class="mb-4 text-left">
+                <label for="playerNameInput" class="block text-xs font-bold text-cyan-400 tracking-wider mb-1">NOME DO JOGADOR</label>
+                <input id="playerNameInput" maxlength="18" value="Jogador" placeholder="Digite seu nome"
+                    class="w-full px-3 py-2.5 rounded-lg bg-slate-950 border border-cyan-500/30 text-white outline-none focus:border-cyan-400">
+            </div>
+
             <div class="space-y-3 mb-6">
                 <button id="btnStartGame" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-orbitron font-black text-lg rounded-xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-95 tracking-wider">
                     INICIAR MISSÃO
@@ -126,6 +132,10 @@
                 <button id="btnOpenShopMain" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-pink-400 border border-pink-500/40 hover:border-pink-400 font-bold rounded-xl transition-all transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
                     LOJA DE ARMAS E SKINS
+                </button>
+                <button id="btnOpenRankingMain" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40 hover:border-amber-400 font-bold rounded-xl transition-all transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
+                    <span class="text-lg">🏆</span>
+                    RANKING DE PARTIDAS
                 </button>
             </div>
 
@@ -175,6 +185,23 @@
                 <button id="btnCloseShop" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl border border-slate-600 transition-all">
                     VOLTAR
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Ranking de Partidas -->
+    <div id="rankingModal" class="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/95 backdrop-blur-md p-4 hidden">
+        <div class="max-w-2xl w-full bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-5 md:p-6 shadow-2xl max-h-[90vh] flex flex-col">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
+                <div>
+                    <h2 class="font-orbitron text-2xl font-black text-amber-400">🏆 RANKING DE PARTIDAS</h2>
+                    <p class="text-xs text-slate-400">Partidas salvas neste navegador, da maior para a menor pontuação.</p>
+                </div>
+                <button id="btnClearRanking" class="px-3 py-2 text-xs font-bold rounded-lg bg-red-900/40 text-red-300 border border-red-500/30 hover:bg-red-900/60">LIMPAR</button>
+            </div>
+            <div id="rankingContent" class="overflow-y-auto space-y-2 flex-1 pr-1"></div>
+            <div class="mt-4 border-t border-slate-800 pt-4 flex justify-end">
+                <button id="btnCloseRanking" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold text-sm rounded-xl border border-slate-600">VOLTAR</button>
             </div>
         </div>
     </div>
@@ -363,12 +390,26 @@
         ];
 
         const SKINS = [
-            { id: 'cyan', name: 'Neon Cyan (Padrão)', price: 0, primary: '#06b6d4', glow: 'rgba(6, 182, 212, 0.6)' },
-            { id: 'red', name: 'Crimson Plasma', price: 500, primary: '#ef4444', glow: 'rgba(239, 68, 68, 0.6)' },
-            { id: 'green', name: 'Acid Green', price: 1000, primary: '#10b981', glow: 'rgba(16, 185, 129, 0.6)' },
-            { id: 'violet', name: 'Electric Violet', price: 1800, primary: '#a855f7', glow: 'rgba(168, 85, 247, 0.6)' },
-            { id: 'gold', name: 'Gold Titan', price: 3500, primary: '#eab308', glow: 'rgba(234, 179, 8, 0.6)' },
-            { id: 'matrix', name: 'Matrix Void', price: 5000, primary: '#f8fafc', glow: 'rgba(248, 250, 252, 0.8)' }
+            { id: 'cyan', name: 'Neon Cyan (Padrão)', price: 0, primary: '#06b6d4', secondary: '#083344', glow: 'rgba(6, 182, 212, 0.75)', style: 'robot' },
+            { id: 'red', name: 'Crimson Plasma', price: 500, primary: '#ef4444', secondary: '#450a0a', glow: 'rgba(239, 68, 68, 0.75)', style: 'robot' },
+            { id: 'green', name: 'Acid Green', price: 1000, primary: '#10b981', secondary: '#022c22', glow: 'rgba(16, 185, 129, 0.75)', style: 'robot' },
+            { id: 'violet', name: 'Electric Violet', price: 1800, primary: '#a855f7', secondary: '#2e1065', glow: 'rgba(168, 85, 247, 0.8)', style: 'robot' },
+            { id: 'gold', name: 'Gold Titan', price: 3500, primary: '#eab308', secondary: '#422006', glow: 'rgba(234, 179, 8, 0.8)', style: 'robot' },
+            { id: 'matrix', name: 'Matrix Void', price: 5000, primary: '#f8fafc', secondary: '#111827', glow: 'rgba(248, 250, 252, 0.9)', style: 'robot' },
+
+            { id: 'neon_samurai', name: 'Neon Ronin', price: 6500, primary: '#22d3ee', secondary: '#7f1d1d', glow: 'rgba(34, 211, 238, 0.95)', style: 'samurai' },
+            { id: 'cyber_ninja', name: 'Cyber Ninja', price: 7800, primary: '#c084fc', secondary: '#111827', glow: 'rgba(192, 132, 252, 0.95)', style: 'ninja' },
+            { id: 'street_hacker', name: 'Street Hacker', price: 9000, primary: '#39ff14', secondary: '#172554', glow: 'rgba(57, 255, 20, 0.95)', style: 'hacker' },
+            { id: 'volt_soldier', name: 'Volt Soldier', price: 11000, primary: '#facc15', secondary: '#1e293b', glow: 'rgba(250, 204, 21, 0.95)', style: 'soldier' },
+            { id: 'phantom_neon', name: 'Neon Phantom', price: 13500, primary: '#fb7185', secondary: '#312e81', glow: 'rgba(251, 113, 133, 1)', style: 'phantom' },
+            { id: 'quantum', name: 'Quantum Specter', price: 17000, primary: '#67e8f9', secondary: '#4c1d95', glow: 'rgba(103, 232, 249, 1)', style: 'quantum' },
+
+            // Skins de personagens — versão neon/cyberpunk
+            { id: 'spider_neon', name: 'Homem-Aranha Neon', price: 20000, primary: '#ef233c', secondary: '#0b1f5c', glow: 'rgba(239, 35, 60, 1)', style: 'spider' },
+            { id: 'ironman_arc', name: 'Homem de Ferro Arc', price: 23000, primary: '#ef4444', secondary: '#fbbf24', glow: 'rgba(251, 191, 36, 1)', style: 'ironman' },
+            { id: 'woody_neon', name: 'Xerife Woody Neon', price: 26000, primary: '#eab308', secondary: '#2563eb', glow: 'rgba(234, 179, 8, 1)', style: 'woody' },
+            { id: 'buzz_neon', name: 'Buzz Lightyear Neon', price: 29000, primary: '#a3e635', secondary: '#7c3aed', glow: 'rgba(163, 230, 53, 1)', style: 'buzz' },
+            { id: 'goku_ultra', name: 'Goku Ultra Neon', price: 35000, primary: '#38bdf8', secondary: '#f97316', glow: 'rgba(56, 189, 248, 1)', style: 'goku' }
         ];
 
         /* ==========================================================================
@@ -421,6 +462,69 @@
         let activeWeaponId = 'pistol';
         let unlockedSkins = ['cyan'];
         let activeSkinId = 'cyan';
+        let playerName = localStorage.getItem('cyberSurvivorPlayerName') || 'Jogador';
+        let matchHistory = JSON.parse(localStorage.getItem('cyberSurvivorMatchHistory') || '[]');
+        const savedUnlockedWeapons = JSON.parse(localStorage.getItem('cyberSurvivorUnlockedWeapons') || 'null');
+        const savedUnlockedSkins = JSON.parse(localStorage.getItem('cyberSurvivorUnlockedSkins') || 'null');
+        if (Array.isArray(savedUnlockedWeapons)) unlockedWeapons = [...new Set(['pistol', ...savedUnlockedWeapons])];
+        if (Array.isArray(savedUnlockedSkins)) unlockedSkins = [...new Set(['cyan', ...savedUnlockedSkins])];
+        const savedWeapon = localStorage.getItem('cyberSurvivorActiveWeapon');
+        const savedSkin = localStorage.getItem('cyberSurvivorActiveSkin');
+        if (savedWeapon && unlockedWeapons.includes(savedWeapon)) activeWeaponId = savedWeapon;
+        if (savedSkin && unlockedSkins.includes(savedSkin)) activeSkinId = savedSkin;
+
+        function saveMatchToRanking() {
+            const entry = {
+                name: playerName || 'Jogador',
+                score: Number(score) || 0,
+                kills: Number(kills) || 0,
+                time: Number(survivalTimeSeconds) || 0,
+                threat: Number(getDifficultyStats().threatLevel) || 1,
+                date: new Date().toLocaleString('pt-BR')
+            };
+            matchHistory.push(entry);
+            matchHistory.sort((a, b) => b.score - a.score);
+            matchHistory = matchHistory.slice(0, 50);
+            localStorage.setItem('cyberSurvivorMatchHistory', JSON.stringify(matchHistory));
+        }
+
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+        }
+
+        function renderRanking() {
+            const container = document.getElementById('rankingContent');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (!matchHistory.length) {
+                container.innerHTML = '<div class="text-center py-12 text-slate-500">Nenhuma partida registrada ainda.<br><span class="text-xs">Jogue uma partida para aparecer no ranking.</span></div>';
+                return;
+            }
+
+            matchHistory.forEach((m, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+                const row = document.createElement('div');
+                row.className = `p-3 rounded-xl border flex items-center gap-3 ${index < 3 ? 'bg-amber-950/20 border-amber-500/30' : 'bg-slate-950/60 border-slate-800'}`;
+                row.innerHTML = `
+                    <div class="w-10 text-center font-orbitron font-black text-amber-400">${medal}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold text-white truncate">${escapeHtml(m.name)}</div>
+                        <div class="text-[10px] text-slate-500">${m.date} • ${formatTime(m.time)} • ${m.kills} eliminações</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-orbitron font-black text-pink-400">${m.score.toLocaleString('pt-BR')}</div>
+                        <div class="text-[10px] text-slate-500">NÍVEL ${m.threat}</div>
+                    </div>`;
+                container.appendChild(row);
+            });
+        }
+
+        function openRanking() {
+            renderRanking();
+            document.getElementById('rankingModal').classList.remove('hidden');
+        }
+
 
         // Efeito de tremedeira na tela (Screen Shake)
         let screenShakeTime = 0;
@@ -574,28 +678,231 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
 
-                // Brilho Neon Cyberpunk no chassi
                 ctx.shadowColor = skin.primary;
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = skin.style === 'quantum' ? 24 : 16;
 
-                // Armas
-                ctx.fillStyle = '#475569';
-                ctx.fillRect(5, -4, 18, 8);
+                ctx.fillStyle = skin.secondary || '#475569';
+                ctx.fillRect(7, -4, 22, 8);
+                ctx.strokeStyle = skin.primary;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(7, -4, 22, 8);
 
-                // Corpo do Robô Jogador
-                ctx.fillStyle = skin.primary;
-                ctx.beginPath();
-                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.lineWidth = 3;
-                ctx.strokeStyle = '#0f172a';
-                ctx.stroke();
+                if (skin.style === 'samurai') {
+                    ctx.fillStyle = skin.secondary;
+                    ctx.beginPath();
+                    ctx.moveTo(-15,-12); ctx.lineTo(8,-15); ctx.lineTo(18,0);
+                    ctx.lineTo(8,15); ctx.lineTo(-15,12); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = skin.primary; ctx.stroke();
+                    ctx.fillStyle = skin.primary; ctx.fillRect(-19,-17,35,4);
+                } else if (skin.style === 'ninja') {
+                    ctx.fillStyle = skin.secondary;
+                    ctx.beginPath();
+                    ctx.moveTo(-17,0); ctx.lineTo(-8,-17); ctx.lineTo(13,-12);
+                    ctx.lineTo(18,0); ctx.lineTo(13,12); ctx.lineTo(-8,17); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = skin.primary; ctx.stroke();
+                    ctx.fillStyle = skin.primary; ctx.fillRect(2,-3,17,6);
+                } else if (skin.style === 'hacker') {
+                    ctx.fillStyle = skin.secondary;
+                    ctx.fillRect(-17,-17,34,34);
+                    ctx.strokeStyle = skin.primary; ctx.strokeRect(-17,-17,34,34);
+                    ctx.fillStyle = skin.primary;
+                    ctx.fillRect(-11,-8,22,3); ctx.fillRect(-11,0,15,3); ctx.fillRect(-11,8,19,3);
+                } else if (skin.style === 'soldier') {
+                    ctx.fillStyle = skin.secondary;
+                    ctx.beginPath();
+                    ctx.moveTo(-18,-13); ctx.lineTo(-5,-19); ctx.lineTo(15,-12);
+                    ctx.lineTo(19,0); ctx.lineTo(15,12); ctx.lineTo(-5,19); ctx.lineTo(-18,13); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = skin.primary; ctx.stroke();
+                    ctx.fillStyle = skin.primary; ctx.fillRect(0,-5,15,10);
+                } else if (skin.style === 'phantom') {
+                    ctx.fillStyle = skin.secondary;
+                    ctx.beginPath();
+                    ctx.arc(0,0,19,Math.PI,0);
+                    ctx.lineTo(15,14); ctx.lineTo(7,10); ctx.lineTo(0,18);
+                    ctx.lineTo(-7,10); ctx.lineTo(-15,14); ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = skin.primary; ctx.stroke();
+                    ctx.fillStyle = skin.primary; ctx.fillRect(-2,-12,16,5);
+                } else if (skin.style === 'quantum') {
+                    ctx.strokeStyle = skin.primary;
+                    ctx.lineWidth = 4;
+                    ctx.beginPath(); ctx.arc(0,0,19,0,Math.PI*2); ctx.stroke();
+                    ctx.strokeStyle = skin.secondary;
+                    ctx.lineWidth = 5;
+                    ctx.beginPath(); ctx.arc(0,0,11,0,Math.PI*2); ctx.stroke();
+                    ctx.fillStyle = skin.primary;
+                    ctx.beginPath(); ctx.arc(5,0,5,0,Math.PI*2); ctx.fill();
+                } else if (skin.style === 'spider') {
+                    // Homem-Aranha: máscara vermelha, olhos brancos e símbolo de aranha neon
+                    ctx.fillStyle = skin.primary;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 19, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#07111f';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
 
-                // Olho / Visor Central
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(6, 0, 5, 0, Math.PI * 2);
-                ctx.fill();
+                    // Teia
+                    ctx.strokeStyle = 'rgba(255,255,255,.75)';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 8; i++) {
+                        const a = i * Math.PI / 4;
+                        ctx.beginPath();
+                        ctx.moveTo(0,0);
+                        ctx.lineTo(Math.cos(a)*17, Math.sin(a)*17);
+                        ctx.stroke();
+                    }
+                    for (let r = 6; r <= 16; r += 5) {
+                        ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.stroke();
+                    }
+
+                    // Olhos
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.ellipse(7,-7,7,3.5,-0.45,0,Math.PI*2);
+                    ctx.ellipse(7,7,7,3.5,0.45,0,Math.PI*2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#111827';
+                    ctx.stroke();
+
+                    // Aranha no peito
+                    ctx.strokeStyle = '#111827';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-2,-5); ctx.lineTo(-2,6);
+                    ctx.moveTo(-7,-1); ctx.lineTo(3,2);
+                    ctx.moveTo(-7,4); ctx.lineTo(3,0);
+                    ctx.stroke();
+                } else if (skin.style === 'ironman') {
+                    // Homem de Ferro: armadura vermelha/dourada e reator Arc
+                    ctx.fillStyle = skin.primary;
+                    ctx.beginPath();
+                    ctx.moveTo(-17,-13); ctx.lineTo(-7,-19); ctx.lineTo(10,-16);
+                    ctx.lineTo(19,-7); ctx.lineTo(16,10); ctx.lineTo(7,18);
+                    ctx.lineTo(-10,16); ctx.lineTo(-18,8); ctx.closePath();
+                    ctx.fill();
+                    ctx.strokeStyle = '#7f1d1d';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Placas douradas
+                    ctx.fillStyle = skin.secondary;
+                    ctx.fillRect(-4,-17,9,5);
+                    ctx.fillRect(-17,-5,5,10);
+                    ctx.fillRect(11,-5,5,10);
+                    ctx.fillRect(-4,12,9,5);
+
+                    // Reator Arc
+                    ctx.fillStyle = '#e0f2fe';
+                    ctx.shadowColor = '#38bdf8';
+                    ctx.shadowBlur = 18;
+                    ctx.beginPath(); ctx.arc(4,0,5,0,Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                } else if (skin.style === 'woody') {
+                    // Xerife Woody: chapéu, colete e camisa em estilo cyber
+                    ctx.fillStyle = '#f5c16c';
+                    ctx.beginPath(); ctx.arc(0,2,17,0,Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = '#713f12'; ctx.lineWidth = 2; ctx.stroke();
+
+                    // Chapéu de xerife
+                    ctx.fillStyle = '#a16207';
+                    ctx.beginPath();
+                    ctx.ellipse(0,-16,20,5,0,0,Math.PI*2);
+                    ctx.fill();
+                    ctx.fillRect(-11,-22,22,8);
+                    ctx.fillStyle = '#eab308';
+                    ctx.fillRect(-11,-16,22,3);
+
+                    // Colete azul e distintivo
+                    ctx.fillStyle = '#2563eb';
+                    ctx.fillRect(-5,-1,10,15);
+                    ctx.fillStyle = '#facc15';
+                    ctx.beginPath(); ctx.arc(5,3,4,0,Math.PI*2); ctx.fill();
+
+                    // Bandana
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fillRect(-13,8,26,4);
+                } else if (skin.style === 'buzz') {
+                    // Buzz Lightyear: traje espacial branco/verde/roxo
+                    ctx.fillStyle = '#f8fafc';
+                    ctx.beginPath();
+                    ctx.roundRect(-18,-17,36,34,8);
+                    ctx.fill();
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Detalhes verdes
+                    ctx.fillStyle = skin.primary;
+                    ctx.fillRect(-18,-8,7,16);
+                    ctx.fillRect(11,-8,7,16);
+                    ctx.fillRect(-7,10,14,6);
+
+                    // Detalhes roxos
+                    ctx.fillStyle = skin.secondary;
+                    ctx.fillRect(-15,-16,9,5);
+                    ctx.fillRect(6,-16,9,5);
+                    ctx.fillRect(-4,-4,8,8);
+
+                    // Visor
+                    ctx.strokeStyle = '#67e8f9';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.arc(5,-2,8,Math.PI,0); ctx.stroke();
+
+                    // Asa/energia
+                    ctx.strokeStyle = skin.primary;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(-15,12); ctx.lineTo(-25,18); ctx.moveTo(15,12); ctx.lineTo(25,18);
+                    ctx.stroke();
+                } else if (skin.style === 'goku') {
+                    // Goku: cabelo espetado, uniforme laranja e aura azul
+                    ctx.shadowColor = skin.primary;
+                    ctx.shadowBlur = 25;
+                    ctx.strokeStyle = skin.primary;
+                    ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(0,0,23,0,Math.PI*2); ctx.stroke();
+
+                    // Uniforme
+                    ctx.shadowBlur = 8;
+                    ctx.fillStyle = skin.secondary;
+                    ctx.beginPath();
+                    ctx.moveTo(-15,-12); ctx.lineTo(0,-17); ctx.lineTo(15,-12);
+                    ctx.lineTo(17,14); ctx.lineTo(5,18); ctx.lineTo(0,9);
+                    ctx.lineTo(-5,18); ctx.lineTo(-17,14); ctx.closePath();
+                    ctx.fill();
+
+                    // Cabelo espetado
+                    ctx.fillStyle = '#111827';
+                    ctx.beginPath();
+                    ctx.moveTo(-12,-8); ctx.lineTo(-18,-17); ctx.lineTo(-8,-14);
+                    ctx.lineTo(-9,-24); ctx.lineTo(0,-16);
+                    ctx.lineTo(6,-25); ctx.lineTo(8,-15);
+                    ctx.lineTo(19,-20); ctx.lineTo(12,-7);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    // Faixa/peitoral
+                    ctx.fillStyle = '#fef3c7';
+                    ctx.fillRect(-4,-4,9,5);
+                    ctx.fillStyle = '#2563eb';
+                    ctx.fillRect(-11,10,22,4);
+                } else {
+                    ctx.fillStyle = skin.primary;
+                    ctx.beginPath(); ctx.arc(0,0,this.radius,0,Math.PI*2); ctx.fill();
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = '#0f172a'; ctx.stroke();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath(); ctx.arc(6,0,5,0,Math.PI*2); ctx.fill();
+                }
+
+                if (!['quantum','robot'].includes(skin.style)) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.shadowColor = skin.primary;
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath(); ctx.arc(6,0,3.5,0,Math.PI*2); ctx.fill();
+                }
 
                 ctx.restore();
             }
@@ -1054,6 +1361,11 @@
            10. GERENCIAMENTO DE ESTADOS DO JOGO (START, PAUSE, GAMEOVER)
            ========================================================================== */
         function startGame() {
+            const nameInput = document.getElementById('playerNameInput');
+            if (nameInput && nameInput.value.trim()) {
+                playerName = nameInput.value.trim().slice(0, 18);
+                localStorage.setItem('cyberSurvivorPlayerName', playerName);
+            }
             AudioFX.init();
             gameState = 'PLAYING';
             score = 0;
@@ -1095,6 +1407,7 @@
         function gameOver() {
             gameState = 'GAMEOVER';
             clearInterval(survivalTimerInterval);
+            saveMatchToRanking();
 
             document.getElementById('goTime').innerText = formatTime(survivalTimeSeconds);
             document.getElementById('goKills').innerText = kills;
@@ -1164,10 +1477,10 @@
 
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full border-2 border-slate-700 flex-shrink-0" style="background:${s.primary}; shadow: 0 0 10px ${s.glow}"></div>
+                        <div class="w-10 h-10 rounded-full border-2 border-slate-700 flex-shrink-0" style="background:radial-gradient(circle at 35% 35%, #fff 0 8%, ${s.primary} 18%, ${s.secondary || '#111827'} 75%); box-shadow:0 0 16px ${s.glow}"></div>
                         <div>
                             <div class="font-orbitron font-bold text-sm text-white">${s.name}</div>
-                            <div class="text-[10px] text-slate-400">${isUnlocked ? (isActive ? 'Equipado' : 'Desbloqueado') : `Preço: ${s.price} pts`}</div>
+                            <div class="text-[10px] text-slate-400">${isUnlocked ? (isActive ? 'Equipado' : 'Desbloqueado') : `Preço: ${s.price} pts`} • ${['spider','ironman','woody','buzz','goku'].includes(s.style) ? 'Personagem Neon' : (s.style === 'robot' ? 'Chassi Neon' : 'Arquétipo Cyber')}</div>
                         </div>
                     </div>
                     <div>
@@ -1192,6 +1505,8 @@
                 credits -= wep.price;
                 unlockedWeapons.push(id);
                 activeWeaponId = id;
+                localStorage.setItem('cyberSurvivorUnlockedWeapons', JSON.stringify(unlockedWeapons));
+                localStorage.setItem('cyberSurvivorActiveWeapon', activeWeaponId);
                 AudioFX.play('buy');
                 renderShopContent();
                 updateHUD();
@@ -1201,6 +1516,7 @@
         function selectWeapon(id) {
             if (unlockedWeapons.includes(id)) {
                 activeWeaponId = id;
+                localStorage.setItem('cyberSurvivorActiveWeapon', activeWeaponId);
                 AudioFX.play('buy');
                 renderShopContent();
                 updateHUD();
@@ -1213,6 +1529,8 @@
                 credits -= skin.price;
                 unlockedSkins.push(id);
                 activeSkinId = id;
+                localStorage.setItem('cyberSurvivorUnlockedSkins', JSON.stringify(unlockedSkins));
+                localStorage.setItem('cyberSurvivorActiveSkin', activeSkinId);
                 AudioFX.play('buy');
                 renderShopContent();
             }
@@ -1221,6 +1539,7 @@
         function selectSkin(id) {
             if (unlockedSkins.includes(id)) {
                 activeSkinId = id;
+                localStorage.setItem('cyberSurvivorActiveSkin', activeSkinId);
                 AudioFX.play('buy');
                 renderShopContent();
             }
@@ -1267,6 +1586,17 @@
         document.getElementById('btnRestartGame').addEventListener('click', startGame);
 
         document.getElementById('btnOpenShopMain').addEventListener('click', openShop);
+        document.getElementById('btnOpenRankingMain').addEventListener('click', openRanking);
+        document.getElementById('btnCloseRanking').addEventListener('click', () => {
+            document.getElementById('rankingModal').classList.add('hidden');
+        });
+        document.getElementById('btnClearRanking').addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar todo o ranking deste navegador?')) {
+                matchHistory = [];
+                localStorage.removeItem('cyberSurvivorMatchHistory');
+                renderRanking();
+            }
+        });
         document.getElementById('btnOpenShopPause').addEventListener('click', openShop);
         document.getElementById('btnCloseShop').addEventListener('click', () => {
             document.getElementById('shopModal').classList.add('hidden');
@@ -1276,6 +1606,7 @@
             gameState = 'MENU';
             clearInterval(survivalTimerInterval);
             document.getElementById('pauseModal').classList.add('hidden');
+            document.getElementById('rankingModal').classList.add('hidden');
             document.getElementById('hudOverlay').classList.add('hidden');
             document.getElementById('mainMenuModal').classList.remove('hidden');
         });
